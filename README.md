@@ -68,6 +68,3 @@ npm start
 - Contraseñas almacenadas de forma segura (hasheadas)
 - Interfaz responsiva con Bootstrap
 
-## Licencia
-
-MIT
