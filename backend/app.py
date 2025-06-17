@@ -5,11 +5,18 @@ from pymongo import MongoClient
 from werkzeug.security import generate_password_hash
 import re
 from flask_cors import CORS
-
+from flask_jwt_extended import JWTManager
 load_dotenv()
 
 app = Flask(__name__)
 CORS(app) 
+
+
+app.config["JWT_SECRET_KEY"] = "clave-secreta-supersegura"  # Cambia esto por una real
+app.config["JWT_TOKEN_LOCATION"] = ["headers"]
+app.config["JWT_HEADER_NAME"] = "Authorization"
+app.config["JWT_HEADER_TYPE"] = "Bearer"
+jwt = JWTManager(app)
 
 client = MongoClient(os.getenv("MONGO_URI"))
 db = client["usuariosApp"]
@@ -29,19 +36,19 @@ def register():
     password = data.get("password", "").strip()
 
     if not name or not email or not password:
-        print("❌ Faltan campos")
+
         return jsonify({"error": "Missing fields"}), 400
 
     if not re.match(r"[^@]+@[^@]+\.[^@]+", email):
-        print("❌ Email inválido")
+
         return jsonify({"error": "Invalid email"}), 400
 
     if len(password) < 6:
-        print("❌ Contraseña muy corta")
+
         return jsonify({"error": "Password too short"}), 400
 
     if usuarios.find_one({"email": email}):
-        print("❌ Email ya registrado")
+    
         return jsonify({"error": "Email already registered"}), 400
 
     hashed_password = generate_password_hash(password, method='pbkdf2:sha256')
@@ -61,6 +68,19 @@ def register():
             "email": email
         }
     }), 201
+
+
+
+@app.route("/api/users", methods=["GET"])
+def get_users():
+    try:
+        users = list(usuarios.find({}, {"name": 1, "email": 1}))
+        for user in users:
+            user["_id"] = str(user["_id"])
+        return jsonify(users), 200
+    except Exception as e:
+        print("Error al obtener usuarios:", e)
+        return jsonify({"error": "An error occurred while fetching users"}), 500
 
 if __name__ == "__main__":
     app.run(debug=True)
